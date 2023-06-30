@@ -8,7 +8,7 @@
   let observedVideo = undefined;
   let wasAdBreak = false;
   let wasMuted = false;
-  let adjustingVolume = false;
+  let mutingVideo = false;
   const observer = new MutationObserver((mutations) => {
     if (!observedVideo) {
       return;
@@ -40,7 +40,7 @@
           }
           if (!wasMuted) {
             log('muting ad');
-            observedVideo.muted = true;
+            muteVideo();
           }
         } else if (!wasMuted) {
           log('unmuting ad');
@@ -54,6 +54,16 @@
       }
     }
   });
+  function muteVideo() {
+    mutingVideo = true;
+    try {
+      observedVideo.muted = true;
+    } finally {
+      setTimeout(() => {
+        mutingVideo = false;
+      }, 10);
+    }
+  }
   function findVideo() {
     log('finding video');
     let video = document.body && document.body.querySelector('video[src^="blob:https://www.twitch.tv/"]');
@@ -64,23 +74,16 @@
     log('found', video);
     observedVideo = video;
     observedVideo.addEventListener('volumechange', () => {
-      if (!(observedVideo && wasAdBreak) || adjustingVolume) {
+      if (!(observedVideo && wasAdBreak) || mutingVideo) {
         return;
       }
       let miniVideo = findMiniVideo(observedVideo);
       if (miniVideo) {
         log('adjusting mini video volume to ' + observedVideo.volume);
         wasMuted = observedVideo.volume === 0;
-        adjustingVolume = true;
-        try {
-          miniVideo.volume = observedVideo.volume;
-          miniVideo.muted = false;
-          observedVideo.muted = true;
-        } finally {
-          setTimeout(() => {
-            adjustingVolume = false;
-          }, 10);
-        }
+        miniVideo.volume = observedVideo.volume;
+        miniVideo.muted = false;
+        muteVideo();
       }
     });
     observer.observe(video.parentElement, {
