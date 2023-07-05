@@ -1,14 +1,16 @@
 /// mute-twitch-ads.js
 (function () {
+  const log = () => { }; //console.log.bind(console);
+  log('mute-twitch-ads', this);
   if (window.location.href === 'about:blank') {
     return;
   }
-  const log = () => { }; // console.log.bind(console);
-  log('mute-twitch-ads');
   let observedVideo = undefined;
   let wasAdBreak = false;
-  let wasMuted = false;
-  let mutingVideo = false;
+  let savedVolume = {
+    volume: 0,
+    muted: true,
+  };
   const observer = new MutationObserver((mutations) => {
     if (!observedVideo) {
       return;
@@ -29,41 +31,49 @@
       if (isAdBreak !== wasAdBreak) {
         log(isAdBreak ? 'ad started' : 'ad ended');
         wasAdBreak = isAdBreak;
-        observedVideo.style.display = isAdBreak ? 'none' : 'block';
         if (isAdBreak) {
-          wasMuted = observedVideo.muted;
-          let miniVideo = findMiniVideo(observedVideo);
-          if (miniVideo && !wasMuted) {
-            log('unmuting mini video');
-            miniVideo.volume = observedVideo.volume;
-            miniVideo.muted = false;
-          }
-          if (!wasMuted) {
+          //let videoBounds = observedVideo.getBoundingClientRect();
+          observedVideo.style.display = 'none';
+          copyVolume(observedVideo, savedVolume);
+          const startTime = performance.now();
+          const setupMiniVideo = () => {
+            log('finding mini video');
+            let miniVideo = findMiniVideo(observedVideo);
+            if (!miniVideo || !isPlaying(miniVideo)) {
+              if (wasAdBreak && performance.now() - startTime < 10000) {
+                setTimeout(setupMiniVideo, 200);
+              }
+              return;
+            }
+            log('found mini video');
+            miniVideo.controls = true;
+            copyVolume(savedVolume, miniVideo);
+            /*if (videoBounds.width > 0 && videoBounds.height > 0) {
+              log('enlarging mini video');
+              setMiniVideoBounds(miniVideo, videoBounds);
+            }*/
+          };
+          setTimeout(setupMiniVideo, 200);
+          if (!observedVideo.muted) {
             log('muting ad');
-            muteVideo();
+            observedVideo.muted = true;
           }
-        } else if (!wasMuted) {
-          log('unmuting ad');
-          observedVideo.muted = false;
+        } else {
+          observedVideo.style.display = 'block';
           let miniVideo = findMiniVideo(observedVideo);
+          log('unmuting ad');
           if (miniVideo) {
             log('muting mini video');
+            copyVolume(miniVideo, observedVideo);
             miniVideo.muted = true;
+            //setMiniVideoBounds(miniVideo, undefined);
+          } else {
+            copyVolume(savedVolume, observedVideo);
           }
         }
       }
     }
   });
-  function muteVideo() {
-    mutingVideo = true;
-    try {
-      observedVideo.muted = true;
-    } finally {
-      setTimeout(() => {
-        mutingVideo = false;
-      }, 10);
-    }
-  }
   function findVideo() {
     log('finding video');
     let video = document.body && document.body.querySelector('video[src^="blob:https://www.twitch.tv/"]');
@@ -73,26 +83,7 @@
     }
     log('found', video);
     observedVideo = video;
-    observedVideo.addEventListener('volumechange', () => {
-      if (!(observedVideo && wasAdBreak) || mutingVideo) {
-        return;
-      }
-      let miniVideo = findMiniVideo(observedVideo);
-      if (miniVideo) {
-        log('adjusting mini video volume to ' + observedVideo.volume);
-        wasMuted = observedVideo.volume === 0;
-        miniVideo.volume = observedVideo.volume;
-        miniVideo.muted = false;
-        muteVideo();
-      }
-    });
     observer.observe(video.parentElement, {
-      attributes: false,
-      characterData: false,
-      childList: true,
-      subtree: false,
-    });
-    observer.observe(video.nextElementSibling, {
       attributes: false,
       characterData: true,
       childList: true,
@@ -110,5 +101,34 @@
     }
     return undefined;
   }
+  function isPlaying(video) {
+    return !!(video.currentSrc && video.currentTime > 0 && !video.paused && !video.ended);
+  }
+  function copyVolume(from, to) {
+    to.volume = from.volume;
+    to.muted = from.muted;
+  }
+  /*function addStyles() {
+    log('adding styles');
+    if (!document.head) {
+      setTimeout(addStyles, 1000);
+      return;
+    }
+    let style = document.createElement('style');
+    style.textContent = '.umta-fixed{position:fixed!important;left:var(--umta-left)!important;top:var(--umta-top)!important;width:var(--umta-width)!important;height:var(--umta-height)!important;}';
+    document.head.appendChild(style);
+  }
+  function setMiniVideoBounds(miniVideo, bounds) {
+    if (bounds) {
+      miniVideo.style.setProperty('--umta-left', bounds.left + 'px');
+      miniVideo.style.setProperty('--umta-top', bounds.top + 'px');
+      miniVideo.style.setProperty('--umta-width', bounds.width + 'px');
+      miniVideo.style.setProperty('--umta-height', bounds.height + 'px');
+      miniVideo.classList.add('umta-fixed');
+    } else {
+      miniVideo.classList.remove('umta-fixed');
+    }
+  }
+  addStyles();*/
   findVideo();
 })();
