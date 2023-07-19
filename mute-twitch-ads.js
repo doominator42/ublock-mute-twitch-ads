@@ -1,6 +1,6 @@
 /// mute-twitch-ads.js
 (function () {
-  const log = () => { }; //console.log.bind(console);
+  const log = () => { }; // console.log.bind(console);
   log('mute-twitch-ads', this);
   if (window.location.href === 'about:blank') {
     return;
@@ -19,11 +19,7 @@
       if (mutation.type === 'childList' && mutation.target === observedVideo.parentElement &&
         mutation.removedNodes && mutation.removedNodes.find(n => n === observedVideo)
       ) {
-        log('video removed');
-        observer.disconnect();
-        observedVideo = undefined;
-        wasAdBreak = false;
-        findVideo();
+        videoRemoved();
       }
     }
     if (observedVideo && observedVideo.nextElementSibling) {
@@ -32,7 +28,6 @@
         log(isAdBreak ? 'ad started' : 'ad ended');
         wasAdBreak = isAdBreak;
         if (isAdBreak) {
-          //let videoBounds = observedVideo.getBoundingClientRect();
           observedVideo.style.display = 'none';
           copyVolume(observedVideo, savedVolume);
           const startTime = performance.now();
@@ -48,10 +43,6 @@
             log('found mini video');
             miniVideo.controls = true;
             copyVolume(savedVolume, miniVideo);
-            /*if (videoBounds.width > 0 && videoBounds.height > 0) {
-              log('enlarging mini video');
-              setMiniVideoBounds(miniVideo, videoBounds);
-            }*/
           };
           setTimeout(setupMiniVideo, 200);
           if (!observedVideo.muted) {
@@ -66,7 +57,6 @@
             log('muting mini video');
             copyVolume(miniVideo, observedVideo);
             miniVideo.muted = true;
-            //setMiniVideoBounds(miniVideo, undefined);
           } else {
             copyVolume(savedVolume, observedVideo);
           }
@@ -101,6 +91,13 @@
     }
     return undefined;
   }
+  function videoRemoved() {
+    log('video removed');
+    observer.disconnect();
+    observedVideo = undefined;
+    wasAdBreak = false;
+    findVideo();
+  }
   function isPlaying(video) {
     return !!(video.currentSrc && video.currentTime > 0 && !video.paused && !video.ended);
   }
@@ -108,27 +105,10 @@
     to.volume = from.volume;
     to.muted = from.muted;
   }
-  /*function addStyles() {
-    log('adding styles');
-    if (!document.head) {
-      setTimeout(addStyles, 1000);
-      return;
-    }
-    let style = document.createElement('style');
-    style.textContent = '.umta-fixed{position:fixed!important;left:var(--umta-left)!important;top:var(--umta-top)!important;width:var(--umta-width)!important;height:var(--umta-height)!important;}';
-    document.head.appendChild(style);
-  }
-  function setMiniVideoBounds(miniVideo, bounds) {
-    if (bounds) {
-      miniVideo.style.setProperty('--umta-left', bounds.left + 'px');
-      miniVideo.style.setProperty('--umta-top', bounds.top + 'px');
-      miniVideo.style.setProperty('--umta-width', bounds.width + 'px');
-      miniVideo.style.setProperty('--umta-height', bounds.height + 'px');
-      miniVideo.classList.add('umta-fixed');
-    } else {
-      miniVideo.classList.remove('umta-fixed');
-    }
-  }
-  addStyles();*/
   findVideo();
+  setInterval(() => {
+    if (observedVideo && document.body && !document.body.contains(observedVideo)) {
+      videoRemoved();
+    }
+  }, 500);
 })();
