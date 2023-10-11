@@ -6,6 +6,11 @@ A script to mute ads on twitch.tv. It does not skip ads, it makes the ad video b
 - Open the extension's settings
 - On the `Settings` tab (first one), at the bottom, check the `I am an advanced user` and open advanced settings by clicking on the gears
 - Set the following configuration (you can also put the permalink of the latest commit if you want to ensure immutability)
-```
-userResourcesLocation https://raw.githubusercontent.com/doominator42/ublock-mute-twitch-ads/master/mute-twitch-ads.js
-```
+    ```
+    userResourcesLocation https://raw.githubusercontent.com/doominator42/ublock-mute-twitch-ads/master/mute-twitch-ads.js
+    ```
+- On the `My filters` tab, add the following entry
+    ```
+    www.twitch.tv##+js(mute-twitch-ads)
+    ```
+- Refresh any previously opened Twitch tabs to apply the filter
