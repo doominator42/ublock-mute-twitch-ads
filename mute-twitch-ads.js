@@ -1,6 +1,8 @@
 /// mute-twitch-ads.js
 (function () {
-  const log = () => { }; // console.log.bind(console);
+  //const log = console.log.bind(console);
+  const log = () => { };
+  const AD_BREAK_REGEX = /[\s;,.-](?:ad break|pause publicitaire|publicité|reklamepause|Werbung|pausa publicitaria|corte comercial|pubblicità|reklámszünet|reclame|reklamen|przerwie na reklamę|pausa para anúncios|anúncio comercial|pauză publicitară|reklamnej pauze|mainoskatkon|reklampausen|sau QC này|reklam aras[\u0131i]ndan|reklamní přestávce)[\s;,.!-]/i;
   log('mute-twitch-ads', this);
   if (window.location.href === 'about:blank') {
     return;
@@ -23,7 +25,7 @@
       }
     }
     if (observedVideo && observedVideo.nextElementSibling) {
-      let isAdBreak = /\bad break\b/i.test(observedVideo.nextElementSibling.innerText);
+      let isAdBreak = AD_BREAK_REGEX.test(observedVideo.nextElementSibling.innerText);
       if (isAdBreak !== wasAdBreak) {
         log(isAdBreak ? 'ad started' : 'ad ended');
         wasAdBreak = isAdBreak;
