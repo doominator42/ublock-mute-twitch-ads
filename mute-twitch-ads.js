@@ -30,7 +30,7 @@
         log(isAdBreak ? 'ad started' : 'ad ended');
         wasAdBreak = isAdBreak;
         if (isAdBreak) {
-          observedVideo.style.display = 'none';
+          observedVideo.style.opacity = 0;
           copyVolume(observedVideo, savedVolume);
           const startTime = performance.now();
           const setupMiniVideo = () => {
@@ -52,7 +52,7 @@
             observedVideo.muted = true;
           }
         } else {
-          observedVideo.style.display = 'block';
+          observedVideo.style.removeProperty('opacity');
           let miniVideo = findMiniVideo(observedVideo);
           log('unmuting ad');
           if (miniVideo) {
