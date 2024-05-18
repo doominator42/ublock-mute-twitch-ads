@@ -1,5 +1,5 @@
 ## Mute Twitch Ads
-A script to mute ads on twitch.tv. It does not skip ads, it makes the ad video black and muted. If the stream is displayed during the ad (as a mini video on the side), it will unmute it so you can hear the stream. If you want to change the volume while an ad is playing, use the volume controls of the mini stream.
+A script to mute ads on twitch.tv. It does not skip ads, it makes the ad video black and muted. If the stream is displayed during the ad (as a mini video on the side), it will unmute it so you can continue to listen to the stream while the ad is playing. If you want to change the volume while an ad is playing, use the volume controls of the mini stream.
 
 ## Installation
 - You need the [uBlock Origin](https://github.com/gorhill/uBlock) extension installed on your browser
@@ -9,8 +9,9 @@ A script to mute ads on twitch.tv. It does not skip ads, it makes the ad video b
     ```
     userResourcesLocation https://raw.githubusercontent.com/doominator42/ublock-mute-twitch-ads/master/mute-twitch-ads.js
     ```
-- On the `My filters` tab, add the following entry
+- On the `My filters` tab, add the following lines
     ```
     www.twitch.tv##+js(mute-twitch-ads)
+    m.twitch.tv##+js(mute-twitch-ads)
     ```
 - Refresh any previously opened Twitch tabs to apply the filter

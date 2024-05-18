@@ -2,12 +2,12 @@
 (function () {
   //const log = console.log.bind(console);
   const log = () => { };
-  const AD_BREAK_REGEX = /[\s;,.-](?:ad break|pause publicitaire|publicité|reklamepause|Werbung|pausa publicitaria|corte comercial|pubblicità|reklámszünet|reclame|reklamen|przerwie na reklamę|pausa para anúncios|anúncio comercial|pauză publicitară|reklamnej pauze|mainoskatkon|reklampausen|sau QC này|reklam aras[\u0131i]ndan|reklamní přestávce)[\s;,.!-]/i;
   log('mute-twitch-ads', this);
   if (window.location.href === 'about:blank') {
     return;
   }
   let observedVideo = undefined;
+  let observedContainer = undefined;
   let wasAdBreak = false;
   let savedVolume = {
     volume: 0,
@@ -17,15 +17,8 @@
     if (!observedVideo) {
       return;
     }
-    for (let mutation of mutations) {
-      if (mutation.type === 'childList' && mutation.target === observedVideo.parentElement &&
-        mutation.removedNodes && mutation.removedNodes.find(n => n === observedVideo)
-      ) {
-        videoRemoved();
-      }
-    }
-    if (observedVideo && observedVideo.nextElementSibling) {
-      let isAdBreak = AD_BREAK_REGEX.test(observedVideo.nextElementSibling.innerText);
+    if (observedVideo && observedContainer) {
+      let isAdBreak = !!observedContainer.querySelector('[aria-label="Ad"]');
       if (isAdBreak !== wasAdBreak) {
         log(isAdBreak ? 'ad started' : 'ad ended');
         wasAdBreak = isAdBreak;
@@ -68,14 +61,16 @@
   });
   function findVideo() {
     log('finding video');
-    let video = document.body && document.body.querySelector('video[src^="blob:https://www.twitch.tv/"]');
+    let video = document.body && document.body.querySelector('video[src^="blob:https://www.twitch.tv/"], video[src^="blob:https://m.twitch.tv/"]');
     if (!video) {
       setTimeout(findVideo, 1000);
       return;
     }
-    log('found', video);
+    let container = getVideoContainer(video);
+    log('found', video, container);
     observedVideo = video;
-    observer.observe(video.parentElement, {
+    observedContainer = container;
+    observer.observe(container, {
       attributes: false,
       characterData: true,
       childList: true,
@@ -97,6 +92,7 @@
     log('video removed');
     observer.disconnect();
     observedVideo = undefined;
+    observedContainer = undefined;
     wasAdBreak = false;
     findVideo();
   }
@@ -106,6 +102,20 @@
   function copyVolume(from, to) {
     to.volume = from.volume;
     to.muted = from.muted;
+  }
+  function getVideoContainer(video) {
+    let container = video;
+    let videoRect = video.getBoundingClientRect();
+    while (rectDiff(videoRect, container.parentElement.getBoundingClientRect()) <= 8) {
+      container = container.parentElement;
+    }
+    return container;
+  }
+  function rectDiff(rect1, rect2) {
+    return Math.abs(rect1.x - rect2.x) +
+      Math.abs(rect1.y - rect2.y) +
+      Math.abs(rect1.width - rect2.width) +
+      Math.abs(rect1.height - rect2.height);
   }
   findVideo();
   setInterval(() => {
